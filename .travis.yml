@@ -2,5 +2,5 @@ language: python
 python:
   - 2.6
   #- 2.7
-before_install: sudo apt-get wxbanker
+before_install: sudo apt-get install wxbanker
 script: python -c "from wxbanker.tests import alltests; alltests.main()"
