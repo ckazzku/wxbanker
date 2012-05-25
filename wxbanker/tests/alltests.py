@@ -27,17 +27,21 @@ files = [f for f in os.listdir(testbase.testdir) if f.endswith(".py") and f not 
 modules = [m.replace(".py", "") for m in files]
 
 def main():
-    if "--xml" in sys.argv:
+    as_xml = "--xml" in sys.argv
+    if as_xml:
         runner = xmlrunner.XMLTestRunner(filename="pyunit.xml")
     else:
         runner = unittest.TextTestRunner()
 
     suite = unittest.TestLoader().loadTestsFromNames(modules)
-    runner.run(suite)
+    result = runner.run(suite)
 
     incomplete = testbase.INCOMPLETE_TESTS
     if incomplete:
         print "Incomplete tests: %i!" % incomplete
+
+    if not (as_xml or result.wasSuccessful()):
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
