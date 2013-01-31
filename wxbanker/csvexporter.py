@@ -17,7 +17,7 @@ class CsvExporter:
         # Iterate through transaction list, write rows.
         for account in model.Accounts:
             for transaction in account.Transactions:
-                row = [account.Name, transaction.GetDescription(), transaction.GetAmount(), transaction.GetDate()]
+                row = [account.Name.encode("utf-8"), transaction.GetDescription().encode("utf-8"), transaction.GetAmount(), transaction.GetDate()]
                 writer.writerow(row)
                 
         return result.getvalue()
