@@ -21,13 +21,15 @@
 from wx.lib.pubsub import Publisher
 from wxbanker import bankexceptions
 
+
 class AccountList(list):
-    def __init__(self, store):
+    def __init__(self, bankmodel, store):
         list.__init__(self, store.GetAccounts())
         # Make sure all the items know their parent list.
         for account in self:
             account.Parent = self
 
+        self.BankModel = bankmodel
         self.Store = store
         self.sort()
         
@@ -43,7 +45,11 @@ class AccountList(list):
         return allRecurrings
 
     def GetBalance(self):
-        return sum([account.Balance for account in self])
+        totalCurrency = self.BankModel.GlobalCurrency
+        total = 0
+        for account in self:
+            total = total + account.GetBalance(totalCurrency)
+        return total
     
     def GetById(self, theId):
         for account in self:
@@ -104,3 +110,4 @@ class AccountList(list):
         self.sort()
 
     Balance = property(GetBalance)
+

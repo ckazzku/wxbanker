@@ -1,0 +1,7 @@
+python-dateutil
+simplejson
+BeautifulSoup
+pyxdg
+numpy
+pyquery
+keyring

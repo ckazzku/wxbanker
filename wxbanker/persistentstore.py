@@ -31,7 +31,12 @@ Table: transactions                                                             
 | 1                      | 1                 | 100.00       | "Initial Balance"        | "2007/01/06"   | null           |
 +-------------------------------------------------------------------------------------------------------+----------------+
 """
-import sys, os, datetime
+
+import ast
+import datetime
+import os
+import sys
+
 from sqlite3 import dbapi2 as sqlite
 import sqlite3
 from wx.lib.pubsub import Publisher
@@ -51,9 +56,10 @@ class PersistentStore:
     Handles creating the Model (bankobjects) from the store and writing
     back the changes.
     """
+
     def __init__(self, path, autoSave=True):
         self.Subscriptions = []
-        self.Version = 11
+        self.Version = 13
         self.Path = path
         self.AutoSave = False
         self.Dirty = False
@@ -175,7 +181,7 @@ class PersistentStore:
         for result in self.dbconn.cursor().execute("SELECT * from %s" % table).fetchall():
             autoid, key, value = result
             # eval the value since we store it repr'd. However null comes out as None, so cast to a string.
-            value = eval(str(value))
+            value = ast.literal_eval(str(value))
             setattr(ormkvobj, key, value)
 
     def onBatchEvent(self, message):
@@ -288,6 +294,11 @@ class PersistentStore:
             # This is tested by testOrphanedTransactionsAreDeleted (dbupgradetests.DBUpgradeTest)
             # Also takes care of LP #249954 without the explicit need to defensively remove on any account creation.
             self.cleanOrphanedTransactions()
+        elif fromVer == 11:
+            self.needsSync = True
+        elif fromVer == 12:
+            # globalCurrency entry
+            cursor.execute('INSERT INTO meta VALUES (null, ?, ?)', ('GlobalCurrency', 0))
         else:
             raise Exception("Cannot upgrade database from version %i"%fromVer)
         
@@ -336,7 +347,11 @@ class PersistentStore:
             repeatOn = [int(x) for x in repeatOn.split(",")]
 
         if sourceId:
-            sourceAccount = [a for a in allAccounts if a.ID == sourceId][0]
+            try:
+                sourceAccount = [a for a in allAccounts if a.ID == sourceId][0]
+            except IndexError:
+                # The sourceAccount no longer exists; it was likely deleted.
+                sourceAccount = None
         else:
             sourceAccount = None
 
@@ -416,9 +431,11 @@ class PersistentStore:
         for recurring in account.Parent.GetRecurringTransactions():
             recurringCache[recurring.ID] = recurring
             
+        Publisher.sendMessage("batch.start")
         for result in self.dbconn.cursor().execute('SELECT * FROM transactions WHERE accountId=?', (account.ID,)).fetchall():
             t = self.result2transaction(result, account, recurringCache=recurringCache)
             transactions.append(t)
+        Publisher.sendMessage("batch.end")
         return transactions
 
     def getTransactionAndParentById(self, tId, parentObj, linked):
@@ -442,11 +459,16 @@ class PersistentStore:
     def renameAccount(self, oldName, account):
         self.dbconn.cursor().execute("UPDATE accounts SET name=? WHERE name=?", (account.Name, oldName))
         self.commitIfAppropriate()
+        
+    def setCurrency(self, currencyIndex, account=None):
+		if account:
+			self.dbconn.cursor().execute('UPDATE accounts SET currency=? WHERE id=?', (currencyIndex, account.ID))
+		else:
+		    # Since no account received, we are updating the global currency
+		    self.dbconn.cursor().execute('UPDATE meta SET value=? WHERE name="GlobalCurrency"', (currencyIndex,))	
+		self.commitIfAppropriate()
 
-    def setCurrency(self, currencyIndex):
-        self.dbconn.cursor().execute('UPDATE accounts SET currency=?', (currencyIndex,))
-        self.commitIfAppropriate()
-
+        
     def __print__(self):
         cursor = self.dbconn.cursor()
         for account in cursor.execute("SELECT * FROM accounts").fetchall():
@@ -468,6 +490,7 @@ class PersistentStore:
         self.commitIfAppropriate()
 
     def onExit(self, message):
+        self.syncBalances()
         if self.Dirty:
             Publisher.sendMessage("warning.dirty exit", message.data)
             

@@ -53,10 +53,6 @@ class CurrencyTest(unittest.TestCase):
         self.assertEqual(currencies.LocalizedCurrency().float2str(1), u'1.00 руб')
 
     def testCurrencyDisplay(self):
-        # First make sure we know how many currencies there are. If this is wrong, we are
-        # testing too much or not enough and need to alter the test.
-        self.assertEqual(len(currencies.CurrencyList), 19)
-
         americanLocale = testbase.LOCALES[0]
         self.assertEqual(locale.setlocale(locale.LC_ALL, americanLocale), americanLocale)
         
@@ -80,6 +76,23 @@ class CurrencyTest(unittest.TestCase):
         self.assertEqual(currencies.LithuanianCurrency().float2str(testAmount), u'1.234,50 Lt')
         self.assertEqual(currencies.SerbianCurrency().float2str(testAmount), u'1.234,50 дин')
         self.assertEqual(currencies.HungarianCurrency().float2str(testAmount), u'1.234,50 Ft')
+        self.assertEqual(currencies.IsraeliCurrency().float2str(testAmount), u'שח 1,234.50')
+        self.assertEqual(currencies.EgyptianCurrency().float2str(testAmount), u'ج.م. 1,234.500')
+        self.assertEqual(currencies.PolishCurrency().float2str(testAmount), u'1.234,50 zł')
+        self.assertEqual(currencies.CzechCurrency().float2str(testAmount), u'1 234,50 Kč')
+        self.assertEqual(currencies.ArgentineCurrency().float2str(testAmount), u'$ 1.234,50')
+        self.assertEqual(currencies.TaiwanCurrency().float2str(testAmount), u'NT$1,234.50')
+        self.assertEqual(currencies.GuatemalaCurrency().float2str(testAmount), u'Q 1,234.50')
+        self.assertEqual(currencies.ChineseCurrency().float2str(testAmount), u'￥1,234.50')
+        self.assertEqual(currencies.MoroccanCurrency().float2str(testAmount), u'د.م. 1,234.500')
+        self.assertEqual(currencies.MacedonianCurrency().float2str(testAmount), u'1 234,50 ден')
+        self.assertEqual(currencies.IndonesianCurrency().float2str(testAmount), u'Rp1.234,50')
+        self.assertEqual(currencies.CanadianCurrency().float2str(testAmount), u'$1,234.50')
+        self.assertEqual(currencies.KazakhstanCurrency().float2str(testAmount), u'1 234.50 тг')
+        self.assertEqual(currencies.TunisianCurrency().float2str(testAmount), u'د.ت. 1,234.500')
+        self.assertEqual(currencies.MalaysianCurrency().float2str(testAmount), u'RM1,234.50')
+        self.assertEqual(currencies.SouthAfricanCurrency().float2str(testAmount), u'R1 234,50')
+        # __CURRENCY_ASSERTION__
 
 
 if __name__ == "__main__":

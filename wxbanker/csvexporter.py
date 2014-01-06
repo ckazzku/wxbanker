@@ -20,7 +20,7 @@ class CsvExporter:
                 row = [account.Name.encode("utf-8"), transaction.GetDescription().encode("utf-8"), transaction.GetAmount(), transaction.GetDate()]
                 writer.writerow(row)
                 
-        return result.getvalue()
+        return result.getvalue().decode("utf8")
     
     @staticmethod
     def Export(model, exportPath):
@@ -28,4 +28,4 @@ class CsvExporter:
         result = CsvExporter.Generate(model)
         # Write it.
         exportFile = open(exportPath, 'w')
-        exportFile.write(result)
+        exportFile.write(result.encode("utf8"))
