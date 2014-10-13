@@ -29,9 +29,13 @@ msgstr "Мес"
 
 #: wxbanker/summarytab.py:48
 msgid "From"
-msgstr "Из"
+msgstr "От"
 
-#: wxbanker/summarytab.py:49 wxbanker/newtransactionctrl.py:31
+#: wxbanker/summarytab.py:49
+msgid "until"
+msgstr "до"
+
+#: wxbanker/newtransactionctrl.py:31
 msgid "to"
 msgstr "В"
 
