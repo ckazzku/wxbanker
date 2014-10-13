@@ -37,7 +37,7 @@ msgstr "до"
 
 #: wxbanker/newtransactionctrl.py:31
 msgid "to"
-msgstr "В"
+msgstr "в"
 
 #: wxbanker/summarytab.py:50
 msgid "Graph"
