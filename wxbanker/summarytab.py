@@ -21,13 +21,15 @@ import wx, datetime
 from wx.lib.pubsub import Publisher
 
 class SummaryPanel(wx.Panel):
+    PANEL_SETTINGS = {_('balance'): {'FitDegree': 2, 'Account': None, 'Granularity': 100, 'Label':_("Trend Degree"), 'SpecParams':['FitDegree']},
+             _('monthly'): {'Months': 12, 'Account': None, 'Granularity': 100, 'Label':_("Months"), 'SpecParams':['Months']}
+            }
+    
     def __init__(self, parent, plotFactory, bankController):
         wx.Panel.__init__(self, parent)
         self.plotFactory = plotFactory
         self.bankController = bankController
-
-        self.plotSettings = {'FitDegree': 2, 'Granularity': 100, 'Account': None, 'Months': 12}
-        self.plotLabels = [_("Trend Degree"), _("Months")]
+        self.plotNames = [plot.NAME for plot in plotFactory.Plots]
         self.currentPlotIndex = 0
         self.cachedData = None
         self.dateRange = None
@@ -38,15 +40,16 @@ class SummaryPanel(wx.Panel):
 
         # create the controls at the bottom
         controlSizer = wx.BoxSizer()
-        self.graphChoice = wx.Choice(self, choices=[plot.NAME for plot in plotFactory.Plots])
-        self.optionCtrl = wx.SpinCtrl(self, min=1, max=24, initial=self.plotSettings['FitDegree'])
+        self.graphChoice = wx.Choice(self, choices=self.plotNames)
+        self.optionCtrl = wx.SpinCtrl(self, min=1, max=24, initial=self.plotSettings('SpecParams', 0))
         # the date range controls
         self.startDate = bankcontrols.DateCtrlFactory(self)
         self.endDate = bankcontrols.DateCtrlFactory(self)
 
-        self.optionText = wx.StaticText(self, label=self.plotLabels[0])
+        self.optionText = wx.StaticText(self, label=self.plotSettings('Label'))
         self.fromText = wx.StaticText(self, label=_("From"))
         self.toText = wx.StaticText(self, label=_("until"))
+        self.setCtrlShow()
         controlSizer.Add(wx.StaticText(self, label=_("Graph")), 0, wx.ALIGN_CENTER_VERTICAL)
         controlSizer.AddSpacer(5)
         controlSizer.Add(self.graphChoice, 0, wx.ALIGN_CENTER_VERTICAL)
@@ -87,32 +90,28 @@ class SummaryPanel(wx.Panel):
         self.generateData(useCache=True)
         
         # Update the controls
-        self.optionText.Label = self.plotLabels[index]
-        self.optionCtrl.Value = self.plotSettings[self.getOptionKey(index)]
-        for ctrl in (self.fromText, self.toText, self.startDate, self.endDate):
-            ctrl.Show(index == 0)
+        self.optionText.Label = self.plotSettings('Label')
+        self.optionCtrl.Value = self.plotSettings('SpecParams', 0)
+        self.setCtrlShow()
         
         # A replace does not Layout, and we have made some changes.
         self.Layout()
         
     def onDateRangeChanged(self, event):
         self.generateData()
-        
-    def getOptionKey(self, index):
-        return ['FitDegree', 'Months'][index]
-    
+            
     def getDateRange(self):
         return [helpers.wxdate2pydate(date) for date in (self.startDate.Value, self.endDate.Value)]
 
     def onAccountSelect(self, message):
         account = message.data
-        self.plotSettings['Account'] = account
+        self.setPlotSettings('Account', account)
         # If this tab isn't being viewed, no need to generate anything just yet.
         if self.isActive:
             self.generateData()
 
     def onOptionSpin(self, event):
-        self.plotSettings[self.getOptionKey(self.currentPlotIndex)] = event.EventObject.Value
+        self.setPlotSettings('SpecParams', event.EventObject.Value, 0)
         self.generateData(useCache=True)
 
     def onEnter(self):
@@ -129,6 +128,31 @@ class SummaryPanel(wx.Panel):
         if useCache and self.cachedData is not None:
             totals = self.cachedData
         else:
-            totals = self.bankController.Model.GetXTotals(self.plotSettings['Account'], daterange=self.getDateRange())
+            totals = self.bankController.Model.GetXTotals(self.plotSettings('Account'), daterange=self.getDateRange())
             self.cachedData = totals
-        self.plotPanel.plotBalance(totals, self.plotSettings)
+        self.plotPanel.plotBalance(totals, self.plotSettings())
+        
+    def setCtrlShow(self):
+        currentName = self.plotNames[self.currentPlotIndex]
+        for ctrl in (self.fromText, self.toText, self.startDate, self.endDate):
+            ctrl.Show(currentName == _('balance'))
+    
+    def plotSettings(self, param=None, specNum=0):
+        currentPlot = self.plotFactory.Plots[self.currentPlotIndex]
+        plotSettings = self.PANEL_SETTINGS[currentPlot.NAME]
+        if plotSettings.has_key(param):
+            if param == 'SpecParams':
+                specKey = plotSettings[param][specNum]
+                return plotSettings[specKey]
+            return plotSettings[param]
+        else:
+            return plotSettings
+    
+    def setPlotSettings(self, param, value, specNum=0):
+        plotSettings = self.plotSettings()
+        if plotSettings.has_key(param):
+            if param == 'SpecParams':
+                specKey = plotSettings[param][specNum]
+                plotSettings[specKey] = value
+            else:
+                plotSettings[param] = value
