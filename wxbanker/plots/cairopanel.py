@@ -15,7 +15,7 @@ except ImportError:
 
 class CairoPlotPanelFactory(baseplot.BaseFactory):
     def __init__(self):
-        self.Plots = [CairoPlotPanel, CairoPlotPanelMonthly]
+        self.Plots = [CairoPlotPanelMonthly, CairoPlotPanel]
     
 class BaseCairoPlotPanel(wx.Panel, baseplot.BasePlot):
     def __init__(self, bankController, parent, plotSettings=None):
